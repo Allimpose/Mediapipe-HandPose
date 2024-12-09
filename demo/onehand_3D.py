@@ -53,7 +53,7 @@ class PoseEstimator:
                 break
         cap.release()
         cv2.destroyAllWindows()
-        
+
     def _draw_landmarks(self, image, landmarks):
         if landmarks is not None:
             if self.results.multi_hand_landmarks:

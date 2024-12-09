@@ -48,7 +48,7 @@ while cap.isOpened() :
             x1 = [landmark.x for landmark in landmarks]
             y1 = [landmark.y for landmark in landmarks]
             z1 = [landmark.z for landmark in landmarks]
-            
+
             x=[x1, x1]
             y=[y1, y1]
             z=[z1, z1]

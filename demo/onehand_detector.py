@@ -17,7 +17,7 @@ hands = mp_hands.Hands(
     min_tracking_confidence=0.8)
 
 # Gesture recognition model
-file = np.genfromtxt('/home/jun/Mediapipe-HandPose/data/origin_data/onehand_gesture_train.csv', delimiter=',')
+file = np.genfromtxt('/home/jun/Mediapipe-handpose/data/origin_data/onehand_gesture_train.csv', delimiter=',')
 angle = file[:,:-1].astype(np.float32)
 label = file[:, -1].astype(np.float32)
 knn = cv2.ml.KNearest_create()
@@ -37,7 +37,7 @@ while cap.isOpened() :
     handedness = result.multi_handedness
 
     img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-    
+
     if not ret :
         break
 
@@ -59,7 +59,7 @@ while cap.isOpened() :
             v = v / np.linalg.norm(v, axis = 1)[:, np.newaxis]
             # Calculate the angle between bones by the value of bones, 15 with large changes
             angle = np.arccos(np.einsum('nt,nt->n',
-                v[[0,1,2,4,5,6,8,9,10,12,13,14,16,17,18],:], 
+                v[[0,1,2,4,5,6,8,9,10,12,13,14,16,17,18],:],
                 v[[1,2,3,5,6,7,9,10,11,13,14,15,17,18,19],:]))
 
             angle = np.degrees(angle)
@@ -70,7 +70,7 @@ while cap.isOpened() :
 
             img_x = img.shape[1]
             img_y = img.shape[0]
-            
+
             hand_x = res.landmark[0].x
             hand_y = res.landmark[0].y
             hand_z = res.landmark[0].z
@@ -78,7 +78,7 @@ while cap.isOpened() :
             cv2.putText(img, text = gesture[idx].upper(),
                        org = (int(hand_x * img_x), int(hand_y * img_y)+20),
                        fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=1, color=(255, 255, 255), thickness=2
-                       ) 
+                       )
             mp_drawing.draw_landmarks(img, res, mp_hands.HAND_CONNECTIONS)
 
     if cv2.waitKey(1) == ord('q'):

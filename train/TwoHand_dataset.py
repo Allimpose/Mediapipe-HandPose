@@ -61,54 +61,48 @@ while cap.isOpened() :
         break
 
     if result.multi_hand_landmarks is not None :
-
-        for idx, hand_handedness in enumerate(result.multi_handedness):
-            if len(handedness) == 2:
-                if hand_handedness.classification[0].label == "Left":
-                    LWhich = 1
-                    for res in result.multi_hand_landmarks :
+        for res in result.multi_hand_landmarks :
+            for idx, hand_handedness in enumerate(result.multi_handedness):
+                if len(handedness) == 2:
+                    if hand_handedness.classification[0].label == "Left":
                         joint = np.zeros((21, 3))
                         mp_drawing.draw_landmarks(img, res, mp_hands.HAND_CONNECTIONS)
 
-                    for j, lm in enumerate(result.multi_hand_landmarks[0].landmark):
-                        joint[j] = [lm.x, lm.y, lm.z]
+                        for j, lm in enumerate(result.multi_hand_landmarks[0].landmark):
+                            joint[j] = [lm.x, lm.y, lm.z]
 
-                    v1L = joint[[0,1,2,3,0,5,6,7,0,9,10,11,0,13,14,15,0,17,18,19],:] # Parent joint
-                    v2L = joint[[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20],:] # Child joint
-                    vL = v2L - v1L # [20,3]
-                    # Normalize v
-                    vL = vL / np.linalg.norm(vL, axis=1)[:, np.newaxis]
+                        v1L = joint[[0,1,2,3,0,5,6,7,0,9,10,11,0,13,14,15,0,17,18,19],:] # Parent joint
+                        v2L = joint[[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20],:] # Child joint
+                        vL = v2L - v1L # [20,3]
+                        # Normalize v
+                        vL = vL / np.linalg.norm(vL, axis=1)[:, np.newaxis]
 
-                    # Get angle using arcos of dot product
-                    angleL = np.arccos(np.einsum('nt,nt->n',
-                        vL[[0,1,2,4,5,6,8,9,10,12,13,14,16,17,18],:],
-                        vL[[1,2,3,5,6,7,9,10,11,13,14,15,17,18,19],:])) # [15,]
-                    angleL = np.degrees(angleL)
+                        # Get angle using arcos of dot product
+                        angleL = np.arccos(np.einsum('nt,nt->n',
+                            vL[[0,1,2,4,5,6,8,9,10,12,13,14,16,17,18],:],
+                            vL[[1,2,3,5,6,7,9,10,11,13,14,15,17,18,19],:])) # [15,]
+                        angleL = np.degrees(angleL)
 
-                if hand_handedness.classification[0].label == "Right":
-                    RWhich = 2
-                    for res in result.multi_hand_landmarks :
-
+                    if hand_handedness.classification[0].label == "Right":
                         joint2 = np.zeros((21, 3))
-
                         mp_drawing.draw_landmarks(img, res, mp_hands.HAND_CONNECTIONS)
 
-                    for j2, lm2 in enumerate(result.multi_hand_landmarks[1].landmark):
-                        joint2[j2] = [lm2.x, lm2.y, lm2.z]
+                        for j2, lm2 in enumerate(result.multi_hand_landmarks[1].landmark):
+                            joint2[j2] = [lm2.x, lm2.y, lm2.z]
 
-                    v1R = joint2[[0,1,2,3,0,5,6,7,0,9,10,11,0,13,14,15,0,17,18,19],:] # Parent joint
-                    v2R = joint2[[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20],:] # Child joint
-                    vR = v2R - v1R # [20,3]
+                        v1R = joint2[[0,1,2,3,0,5,6,7,0,9,10,11,0,13,14,15,0,17,18,19],:] # Parent joint
+                        v2R = joint2[[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20],:] # Child joint
+                        vR = v2R - v1R # [20,3]
 
-                    vR = vR / np.linalg.norm(vR, axis=1)[:, np.newaxis]
+                        vR = vR / np.linalg.norm(vR, axis=1)[:, np.newaxis]
 
-                    # Get angle using arcos of dot product
+                        # Get angle using arcos of dot product
 
-                    angleR = np.arccos(np.einsum('nt,nt->n',
-                        vR[[0,1,2,4,5,6,8,9,10,12,13,14,16,17,18],:],
-                        vR[[1,2,3,5,6,7,9,10,11,13,14,15,17,18,19],:])) # [15,]
+                        angleR = np.arccos(np.einsum('nt,nt->n',
+                            vR[[0,1,2,4,5,6,8,9,10,12,13,14,16,17,18],:],
+                            vR[[1,2,3,5,6,7,9,10,11,13,14,15,17,18,19],:])) # [15,]
 
-                    angleR = np.degrees(angleR)
+                        angleR = np.degrees(angleR)
 
 
                 anglesum_LR = np.concatenate((angleL,angleR))

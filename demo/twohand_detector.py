@@ -7,7 +7,7 @@ from mpl_toolkits.mplot3d import Axes3D
 max_num_hands = 2
 
 gesture = {
-    0:'write', 1:'keyboard', 2:'smartphone'
+    0:'write', 1:'keyboard', 2:'smartphone', 3:'point', 4:'V'
 } # 3 two hand Gestures
 
 # MediaPipe hands model
@@ -15,15 +15,17 @@ mp_hands = mp.solutions.hands
 mp_drawing = mp.solutions.drawing_utils
 hands = mp_hands.Hands(
     max_num_hands=max_num_hands,
-    min_detection_confidence=0.8,
-    min_tracking_confidence=0.8)
+    min_detection_confidence=0.3,
+    min_tracking_confidence=0.3)
 
 
 file = np.genfromtxt('/home/jun/Mediapipe-handpose/data/origin_data/twohand_gesture_train.csv', delimiter=',')
-anglesum = file[:,:-1].astype(np.float32)
+anglesum_LR = file[:,:-1].astype(np.float32)
+anglesum_RL = file[:,:-1].astype(np.float32)
 label = file[:, -1].astype(np.float32)
 knn = cv2.ml.KNearest_create()
-knn.train(anglesum, cv2.ml.ROW_SAMPLE, label)
+knn.train(anglesum_LR, cv2.ml.ROW_SAMPLE, label)
+knn.train(anglesum_RL, cv2.ml.ROW_SAMPLE, label)
 
 cap = cv2.VideoCapture(0)
 
@@ -66,7 +68,7 @@ while cap.isOpened() :
                             vL[[0,1,2,4,5,6,8,9,10,12,13,14,16,17,18],:],
                             vL[[1,2,3,5,6,7,9,10,11,13,14,15,17,18,19],:])) # [15,]
                         angleL = np.degrees(angleL)
-                        
+
                     if hand_handedness.classification[0].label == "Right":
                         joint2 = np.zeros((21, 3))
                         mp_drawing.draw_landmarks(img, res, mp_hands.HAND_CONNECTIONS)

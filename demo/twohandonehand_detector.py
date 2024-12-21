@@ -8,7 +8,7 @@ max_num_hands = 2
 
 gesture = {
     0:'write', 1:'keyboard', 2:'smartphone', 3:'point', 4:'V'
-} # 3 two hand Gestures
+} # 5 two hand Gestures
 
 # MediaPipe hands model
 mp_hands = mp.solutions.hands
@@ -76,10 +76,10 @@ while cap.isOpened() :
                     angle = np.arccos(np.einsum('nt,nt->n',
                         v[[0,1,2,4,5,6,8,9,10,12,13,14,16,17,18],:],
                         v[[1,2,3,5,6,7,9,10,11,13,14,15,17,18,19],:])) # [15,]
-                    
+
                     angleA[0:15]=angle
                     angleB[15:30]=angle
-                    
+
                     angleA = np.degrees(angleA) # Convert radian to degree
                     angleB = np.degrees(angleB) # Convert radian to degree
 
@@ -99,7 +99,7 @@ while cap.isOpened() :
                     hand_x = res.landmark[0].x
                     hand_y = res.landmark[0].y
                     hand_z = res.landmark[0].z
-                        
+
                     if idx_A == idx_B :
                         cv2.putText(img, text = gesture[idx_A].upper(),
                                    org = (int(hand_x * img_x), int(hand_y * img_y)-20),
@@ -109,6 +109,11 @@ while cap.isOpened() :
                                    org = (int(hand_x * img_x), int(hand_y * img_y)-50),
                                    fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=1, color=(0, 0, 255), thickness=2
                                    )
+                    if idx_A == 3 or idx_B == 3 :
+                        point_x = result.multi_hand_landmarks[0].landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP].x
+                        point_y = result.multi_hand_landmarks[0].landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP].y
+
+                        cv2.circle(img, (int(point_x * img_x), int(point_y * img_y)), 10, (255,0,0), 2)
 
                 if len(handedness) == 2:
                     if hand_handedness.classification[0].label == "Left":
@@ -128,7 +133,7 @@ while cap.isOpened() :
                             vL[[0,1,2,4,5,6,8,9,10,12,13,14,16,17,18],:],
                             vL[[1,2,3,5,6,7,9,10,11,13,14,15,17,18,19],:])) # [15,]
                         angleL = np.degrees(angleL)
-                        
+
                     if hand_handedness.classification[0].label == "Right":
                         joint2 = np.zeros((21, 3))
                         mp_drawing.draw_landmarks(img, res, mp_hands.HAND_CONNECTIONS)

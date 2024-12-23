@@ -7,7 +7,7 @@ from mpl_toolkits.mplot3d import Axes3D
 max_num_hands = 2
 
 gesture = {
-    0:'write', 1:'keyboard', 2:'smartphone', 3:'point', 4:'V'
+    0:'write', 1:'keyboard', 2:'smartphone'
 } # 3 two hand Gestures
 
 # MediaPipe hands model

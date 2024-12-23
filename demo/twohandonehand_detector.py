@@ -7,8 +7,13 @@ from mpl_toolkits.mplot3d import Axes3D
 max_num_hands = 2
 
 gesture = {
-    0:'write', 1:'keyboard', 2:'smartphone', 3:'point', 4:'V'
+    0:'write', 1:'keyboard', 2:'smartphone'
 } # 5 two hand Gestures
+
+gesture2 = {
+    0:'fist', 1:'one', 2:'two', 3:'three', 4:'four', 5:'five',
+    6:'six', 7:'gun', 8:'spiderman', 9:'yeah', 10:'ok'
+}
 
 # MediaPipe hands model
 mp_hands = mp.solutions.hands
@@ -19,26 +24,28 @@ hands = mp_hands.Hands(
     min_tracking_confidence=0.8)
 
 
-file = np.genfromtxt('/home/jun/Mediapipe-handpose/data/origin_data/twohandonehand_gesture_train.csv', delimiter=',')
+file = np.genfromtxt('/home/jun/Mediapipe-handpose/data/origin_data/twohand_gesture_train.csv', delimiter=',')
 anglesum_LR = file[:,:-1].astype(np.float32)
 anglesum_RL = file[:,:-1].astype(np.float32)
-angleA = file[:,:-1].astype(np.float32)
-angleB = file[:,:-1].astype(np.float32)
+
 label = file[:, -1].astype(np.float32)
 knn = cv2.ml.KNearest_create()
 knn.train(anglesum_LR, cv2.ml.ROW_SAMPLE, label)
 knn.train(anglesum_RL, cv2.ml.ROW_SAMPLE, label)
 
-knn.train(angleB, cv2.ml.ROW_SAMPLE, label)
-knn.train(angleA, cv2.ml.ROW_SAMPLE, label)
+file2 = np.genfromtxt('/home/jun/Mediapipe-handpose/data/origin_data/onehand_gesture_train.csv', delimiter=',')
+
+angle2 = file2[:,:-1].astype(np.float32)
+label2 = file2[:, -1].astype(np.float32)
+knn2 = cv2.ml.KNearest_create()
+knn2.train(angle2, cv2.ml.ROW_SAMPLE, label2)
 
 cap = cv2.VideoCapture(0)
 
 while cap.isOpened() :
     angleR = [0 for i in range(15)]
     angleL = [0 for i in range(15)]
-    angleA = [0 for i in range(30)]
-    angleB = [0 for i in range(30)]
+
     ret, img = cap.read()
     img = cv2.flip(img,1)
 
@@ -56,66 +63,52 @@ while cap.isOpened() :
 
     if result.multi_hand_landmarks is not None :
         for res in result.multi_hand_landmarks :
-            for idx, hand_handedness in enumerate(result.multi_handedness):
-                if len(handedness) == 1:
-                    joint = np.zeros((21, 3))
-                    mp_drawing.draw_landmarks(img, res, mp_hands.HAND_CONNECTIONS)
+            if len(handedness) == 1:
+                joint = np.zeros((21, 3))
 
-                    for j, lm in enumerate(result.multi_hand_landmarks[0].landmark):
-                        joint[j] = [lm.x, lm.y, lm.z]
+                for j, lm in enumerate(result.multi_hand_landmarks[0].landmark):
+                    joint[j] = [lm.x, lm.y, lm.z]
 
-                    # Compute angles between joints
-                    v1 = joint[[0,1,2,3,0,5,6,7,0,9,10,11,0,13,14,15,0,17,18,19],:] # Parent joint
-                    v2 = joint[[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20],:] # Child joint
-                    #print("v1:",v1)
-                    v = v2 - v1 # [20,3]
-                    # Normalize v
-                    v = v / np.linalg.norm(v, axis=1)[:, np.newaxis]
+                # Compute angles between joints
+                v1 = joint[[0,1,2,3,0,5,6,7,0,9,10,11,0,13,14,15,0,17,18,19],:] # Parent joint
+                v2 = joint[[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20],:] # Child joint
+                #print("v1:",v1)
+                v = v2 - v1 # [20,3]
+                # Normalize v
+                v = v / np.linalg.norm(v, axis=1)[:, np.newaxis]
 
-                    # Get angle using arcos of dot product
-                    angle = np.arccos(np.einsum('nt,nt->n',
-                        v[[0,1,2,4,5,6,8,9,10,12,13,14,16,17,18],:],
-                        v[[1,2,3,5,6,7,9,10,11,13,14,15,17,18,19],:])) # [15,]
+                # Get angle using arcos of dot product
+                angle = np.arccos(np.einsum('nt,nt->n',
+                    v[[0,1,2,4,5,6,8,9,10,12,13,14,16,17,18],:],
+                    v[[1,2,3,5,6,7,9,10,11,13,14,15,17,18,19],:])) # [15,]
 
-                    angleA[0:15]=angle
-                    angleB[15:30]=angle
+                angle = np.degrees(angle) # Convert radian to degree
+                data = np.array([angle], dtype=np.float32)
+                ret, results, neighbours, dist = knn2.findNearest(data, 3)
+                idx = int(results[0][0])
 
-                    angleA = np.degrees(angleA) # Convert radian to degree
-                    angleB = np.degrees(angleB) # Convert radian to degree
+                img_x = img.shape[1]
+                img_y = img.shape[0]
 
-                    dataA = np.array([angleA], dtype=np.float32)
-                    dataB = np.array([angleB], dtype=np.float32)
+                hand_x = res.landmark[0].x
+                hand_y = res.landmark[0].y
+                hand_z = res.landmark[0].z
 
-                    ret_A, results_A, neighbours_A, dist_A = knn.findNearest(dataA, 3)
-                    ret_B, results_B, neighbours_B, dist_B = knn.findNearest(dataB, 3)
+                cv2.putText(img, text = gesture2[idx].upper(),
+                            org = (int(hand_x * img_x), int(hand_y * img_y)-20),
+                            fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=1, color=(0, 0, 255), thickness=2
+                            )
 
-                    idx_A = int(results_A[0][0])
-                    idx_B = int(results_B[0][0])
+                mp_drawing.draw_landmarks(img, res, mp_hands.HAND_CONNECTIONS)
 
+                if idx == 3 :
+                    point_x = result.multi_hand_landmarks[0].landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP].x
+                    point_y = result.multi_hand_landmarks[0].landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP].y
 
-                    img_x = img.shape[1]
-                    img_y = img.shape[0]
+                    cv2.circle(img, (int(point_x * img_x), int(point_y * img_y)), 10, (255,0,0), 2)
 
-                    hand_x = res.landmark[0].x
-                    hand_y = res.landmark[0].y
-                    hand_z = res.landmark[0].z
-
-                    if idx_A == idx_B :
-                        cv2.putText(img, text = gesture[idx_A].upper(),
-                                   org = (int(hand_x * img_x), int(hand_y * img_y)-20),
-                                   fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=1, color=(0, 0, 255), thickness=2
-                                   )
-                        cv2.putText(img, text = gesture[idx_B].upper(),
-                                   org = (int(hand_x * img_x), int(hand_y * img_y)-50),
-                                   fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=1, color=(0, 0, 255), thickness=2
-                                   )
-                    if idx_A == 3 or idx_B == 3 :
-                        point_x = result.multi_hand_landmarks[0].landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP].x
-                        point_y = result.multi_hand_landmarks[0].landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP].y
-
-                        cv2.circle(img, (int(point_x * img_x), int(point_y * img_y)), 10, (255,0,0), 2)
-
-                if len(handedness) == 2:
+            if len(handedness) == 2:
+                for idx, hand_handedness in enumerate(result.multi_handedness):
                     if hand_handedness.classification[0].label == "Left":
                         joint = np.zeros((21, 3))
                         mp_drawing.draw_landmarks(img, res, mp_hands.HAND_CONNECTIONS)
@@ -153,36 +146,33 @@ while cap.isOpened() :
                             vR[[1,2,3,5,6,7,9,10,11,13,14,15,17,18,19],:])) # [15,]
                         angleR = np.degrees(angleR)
 
-                        anglesum_LR = np.concatenate((angleL,angleR))
-                        anglesum_RL = np.concatenate((angleR,angleL))
+                anglesum_LR = np.concatenate((angleL,angleR))
+                anglesum_RL = np.concatenate((angleR,angleL))
 
-                        data_LR = np.array([anglesum_LR], dtype=np.float32)
-                        data_RL = np.array([anglesum_RL], dtype=np.float32)
+                data_LR = np.array([anglesum_LR], dtype=np.float32)
+                data_RL = np.array([anglesum_RL], dtype=np.float32)
 
-                        ret_LR, results_LR, neighbours_LR, dist_LR = knn.findNearest(data_LR, 3)
-                        ret_RL, results_RL, neighbours_RL, dist_RL = knn.findNearest(data_RL, 3)
+                ret_LR, results_LR, neighbours_LR, dist_LR = knn.findNearest(data_LR, 3)
+                ret_RL, results_RL, neighbours_RL, dist_RL = knn.findNearest(data_RL, 3)
 
-                        idx_LR = int(results_LR[0][0])
-                        idx_RL = int(results_RL[0][0])
+                idx_LR = int(results_LR[0][0])
+                idx_RL = int(results_RL[0][0])
 
-                        img_x = img.shape[1]
-                        img_y = img.shape[0]
+                img_x = img.shape[1]
+                img_y = img.shape[0]
 
-                        hand_x = res.landmark[0].x
-                        hand_y = res.landmark[0].y
-                        hand_z = res.landmark[0].z
+                hand_x = res.landmark[0].x
+                hand_y = res.landmark[0].y
+                hand_z = res.landmark[0].z
 
-                        if idx_LR == idx_RL :
-                            cv2.putText(img, text = gesture[idx_LR].upper(),
-                                       org = (int(hand_x * img_x), int(hand_y * img_y)+20),
-                                       fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=1, color=(0, 0, 255), thickness=2
-                                       )
-                            cv2.putText(img, text = gesture[idx_RL].upper(),
-                                       org = (int(hand_x * img_x), int(hand_y * img_y)+50),
-                                       fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=1, color=(0, 0, 255), thickness=2
-                                       )
-
-
+                cv2.putText(img, text = gesture[idx_LR].upper(),
+                        org = (int(hand_x * img_x), int(hand_y * img_y)+20),
+                        fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=1, color=(0, 0, 255), thickness=2
+                        )
+                cv2.putText(img, text = gesture[idx_RL].upper(),
+                         org = (int(hand_x * img_x), int(hand_y * img_y)+50),
+                         fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=1, color=(0, 0, 255), thickness=2
+                         )
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break

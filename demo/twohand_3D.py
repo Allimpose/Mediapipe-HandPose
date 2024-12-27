@@ -4,71 +4,62 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
-max_num_hands = 2
+class PoseEstimator:
+    def __init__(self):
+        self.mp_pose = mp.solutions.hands
+        self.pose = self.mp_pose.Hands()
+        self.mp_drawing = mp.solutions.drawing_utils
 
-# MediaPipe hands model
-mp_hands = mp.solutions.hands
-mp_drawing = mp.solutions.drawing_utils
-hands = mp_hands.Hands(
-    max_num_hands=max_num_hands,
-    min_detection_confidence=0.8,
-    min_tracking_confidence=0.8)
+    def process_webcam(self):
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
 
-cap = cv2.VideoCapture(0)
-fig = plt.figure()
-ax = fig.add_subplot(111, projection='3d')
-while cap.isOpened() :
-    ret, img = cap.read()
-    img = cv2.flip(img,1)
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        cap = cv2.VideoCapture(0)  # Use default webcam (index 0)
+        while cap.isOpened():
+            ret, frame = cap.read()
 
-    # hand detect
-    result = hands.process(img)
-    hand_landmarks = result.multi_hand_landmarks
-    handedness = result.multi_handedness
+            if not ret:
+                break
+            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            self.results = self.pose.process(frame_rgb)
+            annotated_frame = self._draw_landmarks(frame, self.results.multi_hand_landmarks)
+            cv2.imshow('Pose Estimation', annotated_frame)
 
-    img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-    ax.clear()
-    if not ret :
-        break
-    x1 = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
-    y1 = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
-    z1 = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+            ax.clear()
 
-    x2 = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
-    y2 = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
-    z2 = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+            if self.results.multi_hand_landmarks:
+                for handLms in self.results.multi_hand_landmarks:
+                    landmarks = handLms.landmark
 
-    if result.multi_hand_landmarks is not None :
+                    x = [landmark.x for landmark in landmarks]
+                    y = [landmark.y for landmark in landmarks]
+                    z = [landmark.z for landmark in landmarks]
+                    # Plot 3D landmarks
+                    ax.scatter(x, y, z)
 
+            # Set plot limits and labels
+            ax.set_xlim(-1, 1)
+            ax.set_ylim(-1, 1)
+            ax.set_zlim(-1, 1)
+            ax.set_xlabel('X-axis')
+            ax.set_ylabel('Y-axis')
+            ax.set_zlabel('Z-axis')
 
-        for res in result.multi_hand_landmarks :
-            landmarks = res.landmark
-            mp_drawing.draw_landmarks(img, res, mp_hands.HAND_CONNECTIONS)
-            x1 = [landmark.x for landmark in landmarks]
-            y1 = [landmark.y for landmark in landmarks]
-            z1 = [landmark.z for landmark in landmarks]
+            # Show plot
+            plt.pause(0.01)
+            plt.show(block=False)
 
-            x=[x1, x1]
-            y=[y1, y1]
-            z=[z1, z1]
-            ax.scatter(x,y,z)
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+        cap.release()
+        cv2.destroyAllWindows()
 
-        # Set plot limits and labels
-        ax.set_xlim(-1, 1)
-        ax.set_ylim(-1, 1)
-        ax.set_zlim(-1, 1)
-        ax.set_xlabel('X-axis')
-        ax.set_ylabel('Y-axis')
-        ax.set_zlabel('Z-axis')
+    def _draw_landmarks(self, image, landmarks):
+        annotated_image = image.copy()
+        if landmarks is not None:
+            for handLms in landmarks:
+                self.mp_drawing.draw_landmarks(annotated_image, handLms, self.mp_pose.HAND_CONNECTIONS)
+        return annotated_image
 
-        # Show plot
-        plt.pause(0.01)
-        plt.show(block=False)
-
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
-    cv2.imshow('hand', img)
-
-cap.release()
-cv2.destroyAllWindows()
+pose = PoseEstimator()
+pose.process_webcam()

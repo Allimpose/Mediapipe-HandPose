@@ -69,6 +69,13 @@ while cap.isOpened():
 
             mp_drawing.draw_landmarks(frame, res, mp_hands.HAND_CONNECTIONS)
 
+            img_x = frame.shape[1]
+            img_y = frame.shape[0]
+
+            hand_x = res.landmark[0].x
+            hand_y = res.landmark[0].y
+            hand_z = res.landmark[0].z
+
             landmarks = res.landmark
             wrist = [landmarks[mp_hands.HandLandmark.WRIST].x,
                      landmarks[mp_hands.HandLandmark.WRIST].y,
@@ -111,6 +118,11 @@ while cap.isOpened():
             cv2.polylines(frame, [np.array(rotated_points)], isClosed=True, color=(0, 255, 0), thickness=3)
 
             cv2.putText(frame, f"Yaw: {yaw:.2f}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
+
+            cv2.putText(frame, text = gesture[idx].upper(),
+                       org = (int(hand_x * img_x), int(hand_y * img_y)+20),
+                       fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=1, color=(255, 255, 255), thickness=2
+                       )
 
     cv2.imshow('Hand Yaw with Rotating Rectangle', frame)
 

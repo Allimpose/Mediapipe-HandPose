@@ -45,11 +45,11 @@ while cap.isOpened():
 
     if results.multi_hand_landmarks:
         for res in results.multi_hand_landmarks:
-            joint = np.zeros((21, 3)) # 21 joints, create array to store xyz values
+            joint = np.zeros((21, 3))  # 21 joints, create array to store xyz values
 
-            for j, lm in enumerate(res.landmark) :
+            for j, lm in enumerate(res.landmark):
                 joint[j] = [lm.x, lm.y, lm.z]
-            # Get joint number to connect
+
             v1 = joint[[0,1,2,3,0,5,6,7,0,9,10,11,0,13,14,15,0,17,18,19],:]
             v2 = joint[[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20],:]
             v = v2 - v1 # Bone values (x, y, z coordinate values → vector values)
@@ -67,20 +67,8 @@ while cap.isOpened():
             ret, results, neighbours, dist = knn.findNearest(data, 3)
             idx = int(results[0][0])
 
-            img_x = frame.shape[1]
-            img_y = frame.shape[0]
-
-            hand_x = res.landmark[0].x
-            hand_y = res.landmark[0].y
-            hand_z = res.landmark[0].z
-
-            cv2.putText(frame, text = gesture[idx].upper(),
-                       org = (int(hand_x * img_x), int(hand_y * img_y)+20),
-                       fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=1, color=(255, 255, 255), thickness=2
-                       )
             mp_drawing.draw_landmarks(frame, res, mp_hands.HAND_CONNECTIONS)
 
-            # 손목(Wrist)와 중지 MCP(Middle Finger MCP) 좌표 추출
             landmarks = res.landmark
             wrist = [landmarks[mp_hands.HandLandmark.WRIST].x,
                      landmarks[mp_hands.HandLandmark.WRIST].y,
@@ -89,15 +77,43 @@ while cap.isOpened():
                           landmarks[mp_hands.HandLandmark.MIDDLE_FINGER_MCP].y,
                           landmarks[mp_hands.HandLandmark.MIDDLE_FINGER_MCP].z]
 
-            # Yaw (좌우 회전 각도) 계산
             yaw = calculate_yaw(wrist, middle_mcp)
 
-            # 결과 출력
+            circle_center = (300, 200)
+            radius = 60
+            offset = 20
+
+            # 회전각도에 따라 rectangle 중심 좌표 계산
+            angle_rad = np.radians(yaw)
+            rect_center = (
+                int(circle_center[0] + (radius + offset) * np.cos(angle_rad)),
+                int(circle_center[1] + (radius + offset) * np.sin(angle_rad))
+            )
+
+            # Rectangle의 크기와 각도
+            rect_width = 50
+            rect_height = 30
+            rect_points = [
+                (-rect_width // 2, -rect_height // 2),
+                (rect_width // 2, -rect_height // 2),
+                (rect_width // 2, rect_height // 2),
+                (-rect_width // 2, rect_height // 2),
+            ]
+            rotation_matrix = np.array([
+                [np.cos(angle_rad), -np.sin(angle_rad)],
+                [np.sin(angle_rad), np.cos(angle_rad)]
+            ])
+            rotated_points = [np.dot(rotation_matrix, point) for point in rect_points]
+            rotated_points = [(int(p[0] + rect_center[0]), int(p[1] + rect_center[1])) for p in rotated_points]
+
+            cv2.circle(frame, circle_center, radius, (255, 0, 0), 3, cv2.LINE_AA)
+
+            cv2.polylines(frame, [np.array(rotated_points)], isClosed=True, color=(0, 255, 0), thickness=3)
+
             cv2.putText(frame, f"Yaw: {yaw:.2f}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
 
-    cv2.imshow('Hand Yaw', frame)
+    cv2.imshow('Hand Yaw with Rotating Rectangle', frame)
 
-    # 'q'를 눌러 종료
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 

@@ -8,6 +8,7 @@ gesture = {
     6:'six', 7:'gun', 8:'spiderman', 9:'yeah', 10:'ok'
 }
 
+
 # MediaPipe hands model
 mp_hands = mp.solutions.hands
 mp_drawing = mp.solutions.drawing_utils
@@ -33,9 +34,42 @@ def calculate_yaw(wrist, middle_mcp):
     # 각도를 도(degree)로 변환
     return np.degrees(yaw)
 
-cap = cv2.VideoCapture(0)
+def calculate_rotated_rectangle(circle_center, radius, offset, yaw, rect_width, rect_height):
+    # 각도를 라디안으로 변환
+    angle_rad = np.radians(yaw)
 
+    # 사각형 중심 좌표 계산
+    rect_center = (
+        int(circle_center[0] + (radius + offset) * np.cos(angle_rad)),
+        int(circle_center[1] + (radius + offset) * np.sin(angle_rad))
+    )
+
+    # 사각형 꼭짓점 좌표 정의 (중심 기준 상대 위치)
+    rect_points = [
+        (-rect_width // 2, -rect_height // 2),
+        (rect_width // 2, -rect_height // 2),
+        (rect_width // 2, rect_height // 2),
+        (-rect_width // 2, rect_height // 2),
+    ]
+
+    # 회전 행렬 생성
+    rotation_matrix = np.array([
+        [np.cos(angle_rad), -np.sin(angle_rad)],
+        [np.sin(angle_rad), np.cos(angle_rad)]
+    ])
+
+    # 회전 행렬 적용 및 원점 기준 좌표 계산
+    rotated_points = [np.dot(rotation_matrix, point) for point in rect_points]
+
+    # 사각형 중심 좌표를 기준으로 최종 좌표 계산
+    final_points = [(int(p[0] + rect_center[0]), int(p[1] + rect_center[1])) for p in rotated_points]
+
+    return final_points
+final_points2 = None
+yaw2 = None
+cap = cv2.VideoCapture(0)
 while cap.isOpened():
+
     success, frame = cap.read()
     if not success:
         break
@@ -89,42 +123,31 @@ while cap.isOpened():
             circle_center = (300, 200)
             radius = 60
             offset = 20
-
-            # 회전각도에 따라 rectangle 중심 좌표 계산
-            angle_rad = np.radians(yaw)
-            rect_center = (
-                int(circle_center[0] + (radius + offset) * np.cos(angle_rad)),
-                int(circle_center[1] + (radius + offset) * np.sin(angle_rad))
-            )
-
-            # Rectangle의 크기와 각도
             rect_width = 50
             rect_height = 30
-            rect_points = [
-                (-rect_width // 2, -rect_height // 2),
-                (rect_width // 2, -rect_height // 2),
-                (rect_width // 2, rect_height // 2),
-                (-rect_width // 2, rect_height // 2),
-            ]
-            rotation_matrix = np.array([
-                [np.cos(angle_rad), -np.sin(angle_rad)],
-                [np.sin(angle_rad), np.cos(angle_rad)]
-            ])
-            rotated_points = [np.dot(rotation_matrix, point) for point in rect_points]
-            rotated_points = [(int(p[0] + rect_center[0]), int(p[1] + rect_center[1])) for p in rotated_points]
+
+            final_points = calculate_rotated_rectangle(circle_center, radius, offset, yaw, rect_width, rect_height)
+
+            if idx == 0:
+                if yaw2 is None:
+                    yaw2 = yaw
+                    final_points2 = calculate_rotated_rectangle(circle_center, radius, offset, yaw2, rect_width, rect_height)
+
+            else:
+                yaw2 = None
+
+            if final_points2 is not None:
+                cv2.polylines(frame, [np.array(final_points2)], isClosed=True, color=(255, 255, 0), thickness=3)
 
             cv2.circle(frame, circle_center, radius, (255, 0, 0), 3, cv2.LINE_AA)
-
-            cv2.polylines(frame, [np.array(rotated_points)], isClosed=True, color=(0, 255, 0), thickness=3)
-
+            cv2.polylines(frame, [np.array(final_points)], isClosed=True, color=(0, 255, 0), thickness=3)
             cv2.putText(frame, f"Yaw: {yaw:.2f}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
-
             cv2.putText(frame, text = gesture[idx].upper(),
                        org = (int(hand_x * img_x), int(hand_y * img_y)+20),
                        fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=1, color=(255, 255, 255), thickness=2
                        )
 
-    cv2.imshow('Hand Yaw with Rotating Rectangle', frame)
+    cv2.imshow('Hand Yaw', frame)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break

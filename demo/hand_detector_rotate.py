@@ -65,11 +65,11 @@ def calculate_rotated_rectangle(circle_center, radius, offset, yaw, rect_width, 
     final_points = [(int(p[0] + rect_center[0]), int(p[1] + rect_center[1])) for p in rotated_points]
 
     return final_points
+
 final_points2 = None
 yaw2 = None
 cap = cv2.VideoCapture(0)
 while cap.isOpened():
-
     success, frame = cap.read()
     if not success:
         break
@@ -120,24 +120,35 @@ while cap.isOpened():
 
             yaw = calculate_yaw(wrist, middle_mcp)
 
+            yaw3 = yaw + 90
+
+            # yaw2의 초기 설정
+            if yaw2 is None:
+                yaw2 = -90
+
+            # idx == 0일 때 한 번만 yaw2 업데이트
+            if idx == 0 and not yaw2_updated:
+                yaw2 += yaw3
+                yaw2_updated = True  # 업데이트 플래그 설정
+                final_points2 = calculate_rotated_rectangle(circle_center, radius, offset, yaw2, rect_width, rect_height)
+
+            # idx가 0이 아닐 때 플래그를 리셋
+            if idx != 0:
+                yaw2_updated = False
+
+            print("yaw2: ",yaw2)
+            print("yaw3: ",yaw3)
+
             circle_center = (300, 200)
             radius = 60
             offset = 20
             rect_width = 50
             rect_height = 30
 
-            final_points = calculate_rotated_rectangle(circle_center, radius, offset, yaw, rect_width, rect_height)
-
-            if idx == 0:
-                if yaw2 is None:
-                    yaw2 = yaw
-                    final_points2 = calculate_rotated_rectangle(circle_center, radius, offset, yaw2, rect_width, rect_height)
-
-            else:
-                yaw2 = None
-
             if final_points2 is not None:
                 cv2.polylines(frame, [np.array(final_points2)], isClosed=True, color=(255, 255, 0), thickness=3)
+
+            final_points = calculate_rotated_rectangle(circle_center, radius, offset, yaw, rect_width, rect_height)
 
             cv2.circle(frame, circle_center, radius, (255, 0, 0), 3, cv2.LINE_AA)
             cv2.polylines(frame, [np.array(final_points)], isClosed=True, color=(0, 255, 0), thickness=3)

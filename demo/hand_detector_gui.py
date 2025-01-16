@@ -18,7 +18,7 @@ hands = mp_hands.Hands(
     min_tracking_confidence=0.8)
 
 # Gesture recognition model
-file = np.genfromtxt('/home/jun/Mediapipe-handpose/data/origin_data/onehand_gesture_train.csv', delimiter=',')
+file = np.genfromtxt('/home/jun/Mediapipe-HandPose/data/origin_data/onehand_gesture_train.csv', delimiter=',')
 angle = file[:,:-1].astype(np.float32)
 label = file[:, -1].astype(np.float32)
 knn = cv2.ml.KNearest_create()
@@ -66,9 +66,47 @@ def calculate_rotated_rectangle(circle_center, radius, offset, yaw, rect_width, 
 
     return final_points
 
+def is_fingers_inside_circle(landmarks, circle_center, radius):
+    finger_tips = [
+        mp_hands.HandLandmark.THUMB_TIP,
+        mp_hands.HandLandmark.INDEX_FINGER_TIP,
+        mp_hands.HandLandmark.MIDDLE_FINGER_TIP,
+        mp_hands.HandLandmark.RING_FINGER_TIP,
+        mp_hands.HandLandmark.PINKY_TIP,
+    ]
+
+    for tip in finger_tips:
+        tip_x = int(landmarks[tip].x * img_x)
+        tip_y = int(landmarks[tip].y * img_y)
+        distance = np.sqrt((circle_center[0] - tip_x) ** 2 + (circle_center[1] - tip_y) ** 2)
+        if distance > radius:
+            return False
+    return True
+
+def is_fingers_inside_rectangle(landmark, finger, rect_top_left, rect_bottom_right, img_width, img_height):
+    finger_x = int(landmark[finger].x * img_width)
+    finger_y = int(landmark[finger].y * img_height)
+
+    # 직사각형 안에 있는지 확인
+    if rect_top_left[0] <= finger_x <= rect_bottom_right[0] and rect_top_left[1] <= finger_y <= rect_bottom_right[1]:
+        return True
+    return False
+
 final_points2 = None
 yaw2 = None
 cap = cv2.VideoCapture(0)
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280) # 가로
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720) # 세로
+
+current_zoom = cap.get(cv2.CAP_PROP_ZOOM)
+
+cap.set(cv2.CAP_PROP_ZOOM, 1)
+
+if not cap.get(cv2.CAP_PROP_ZOOM):
+    print("Zoom control is not supported by this camera.")
+else:
+    print("Zoom control is supported.")
+
 while cap.isOpened():
     success, frame = cap.read()
     if not success:
@@ -127,7 +165,7 @@ while cap.isOpened():
                 yaw2 = -90
 
             # idx == 0일 때 한 번만 yaw2 업데이트
-            if idx == 0 and not yaw2_updated:
+            if idx == 0 and not yaw2_updated and is_fingers_inside_circle(res.landmark, circle_center, radius):
                 yaw2 += yaw3
                 yaw2_updated = True  # 업데이트 플래그 설정
                 final_points2 = calculate_rotated_rectangle(circle_center, radius, offset, yaw2, rect_width, rect_height)
@@ -136,11 +174,8 @@ while cap.isOpened():
             if idx != 0:
                 yaw2_updated = False
 
-            print("yaw2: ",yaw2)
-            print("yaw3: ",yaw3)
-
-            circle_center = (300, 200)
-            radius = 60
+            circle_center = (640, 360)
+            radius = 120
             offset = 20
             rect_width = 50
             rect_height = 30
@@ -149,6 +184,30 @@ while cap.isOpened():
                 cv2.polylines(frame, [np.array(final_points2)], isClosed=True, color=(255, 255, 0), thickness=3)
 
             final_points = calculate_rotated_rectangle(circle_center, radius, offset, yaw, rect_width, rect_height)
+
+            pt1 = (10, 10)
+            pt2 = (100, 100)
+
+            pt3 = (1180, 10)
+            pt4 = (1270, 100)
+
+            width=cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+            height=cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+
+            if idx == 1 and is_fingers_inside_rectangle(res.landmark,mp_hands.HandLandmark.INDEX_FINGER_TIP,pt1, pt2,frame.shape[1], frame.shape[0]):
+                current_zoom -= 1
+                if current_zoom < 0:
+                    current_zoom = 0
+                cap.set(cv2.CAP_PROP_ZOOM, current_zoom)
+                print(f"Zoom Out: {current_zoom}")
+            elif idx == 1 and is_fingers_inside_rectangle(res.landmark,mp_hands.HandLandmark.INDEX_FINGER_TIP,pt3, pt4,frame.shape[1], frame.shape[0]):
+                current_zoom += 1
+                cap.set(cv2.CAP_PROP_ZOOM, current_zoom)
+                print(f"Zoom In: {current_zoom}")
+
+            cv2.rectangle(frame, pt1, pt2, (0, 255, 0), 2)
+
+            cv2.rectangle(frame, pt3, pt4, (0, 255, 0), 2)
 
             cv2.circle(frame, circle_center, radius, (255, 0, 0), 3, cv2.LINE_AA)
             cv2.polylines(frame, [np.array(final_points)], isClosed=True, color=(0, 255, 0), thickness=3)

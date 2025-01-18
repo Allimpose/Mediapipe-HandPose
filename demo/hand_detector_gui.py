@@ -4,8 +4,8 @@ import numpy as np
 
 max_num_hands = 2
 gesture = {
-    0:'fist', 1:'one', 2:'two', 3:'three', 4:'four', 5:'five',
-    6:'six', 7:'gun', 8:'spiderman', 9:'yeah', 10:'ok'
+    0:'fist', 1:'point', 2:'index_click', 3:'middle_click', 4:'ring_click',
+    5:'pinky_click', 6:'hand_default'
 }
 
 
@@ -14,11 +14,11 @@ mp_hands = mp.solutions.hands
 mp_drawing = mp.solutions.drawing_utils
 hands = mp_hands.Hands(
     max_num_hands=max_num_hands,
-    min_detection_confidence=0.8,
-    min_tracking_confidence=0.8)
+    min_detection_confidence=0.9,
+    min_tracking_confidence=0.9)
 
 # Gesture recognition model
-file = np.genfromtxt('/home/jun/Mediapipe-HandPose/data/origin_data/onehand_gesture_train.csv', delimiter=',')
+file = np.genfromtxt('/home/jun/Mediapipe-HandPose/data/origin_data/onehand_gui_train.csv', delimiter=',')
 angle = file[:,:-1].astype(np.float32)
 label = file[:, -1].astype(np.float32)
 knn = cv2.ml.KNearest_create()

@@ -4,8 +4,7 @@ import numpy as np
 
 max_num_hands = 2 # Number of recognizable hands
 gesture = {
-    0:'fist', 1:'one', 2:'two', 3:'three', 4:'four', 5:'five',
-    6:'six', 7:'gun', 8:'spiderman', 9:'yeah', 10:'ok'
+    0:'fist', 1:'point', 2:'index_click', 3:'middle_click', 4:'ring_click', 5:'pinky_click', 6:'hand_default'
 } # 11 Gestures
 
 # MediaPipe hands model
@@ -17,7 +16,7 @@ hands = mp_hands.Hands(
     min_tracking_confidence=0.5)
 
 # Gesture recognition data
-file = np.genfromtxt('/home/jun/Mediapipe-HandPose/data/train_data/onehand_gesture_train.csv', delimiter=',')
+file = np.genfromtxt('/home/jun/Mediapipe-HandPose/data/train_data/onehand_gui_train.csv', delimiter=',')
 
 cap = cv2.VideoCapture(0)
 i = 0
@@ -28,7 +27,7 @@ file = np.array(["angle1","angle2","angle3","angle4","angle5","angle6","angle7",
 def Lclick(event, x, y, flags, param):
     global data, file
     global i
-    if event == cv2.EVENT_LBUTTONDOWN:
+    if event == cv2.EVENT_MOUSEWHEEL:
         file = np.vstack((file, data))
         print(file.shape)
     elif event == cv2.EVENT_MBUTTONDOWN:
@@ -80,4 +79,4 @@ while cap.isOpened():
     if cv2.waitKey(1) == ord('q'):
         break
 
-np.savetxt('/home/jun/handpose/data/train_data/onehand_gesture_train.csv', file, fmt='%s', delimiter=',')
+np.savetxt('/home/jun/Mediapipe-HandPose/data/train_data/onehand_gui_train.csv', file, fmt='%s', delimiter=',')

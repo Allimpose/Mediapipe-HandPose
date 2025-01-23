@@ -1,12 +1,5 @@
-# Created by https://www.toptal.com/developers/gitignore/api/ros2,python,powershell
-# Edit at https://www.toptal.com/developers/gitignore?templates=ros2,python,powershell
-
-### PowerShell ###
-# Exclude packaged modules
-*.zip
-
-# Exclude .NET assemblies from source
-*.dll
+# Created by https://www.toptal.com/developers/gitignore/api/ros2,python
+# Edit at https://www.toptal.com/developers/gitignore?templates=ros2,python
 
 ### Python ###
 # Byte-compiled / optimized / DLL files
@@ -210,4 +203,4 @@ qtcreator-*
 COLCON_IGNORE
 AMENT_IGNORE
 
-# End of https://www.toptal.com/developers/gitignore/api/ros2,python,powershell
+# End of https://www.toptal.com/developers/gitignore/api/ros2,python

@@ -1,5 +1,20 @@
-# Created by https://www.toptal.com/developers/gitignore/api/ros2,python
-# Edit at https://www.toptal.com/developers/gitignore?templates=ros2,python
+# Created by https://www.toptal.com/developers/gitignore/api/python,linux
+# Edit at https://www.toptal.com/developers/gitignore?templates=python,linux
+
+### Linux ###
+*~
+
+# temporary files which can be created if a process still has a handle open of a deleted file
+.fuse_hidden*
+
+# KDE directory preferences
+.directory
+
+# Linux trash folder which might appear on any partition or disk
+.Trash-*
+
+# .nfs files are created when an open file is removed but is still being accessed
+.nfs*
 
 ### Python ###
 # Byte-compiled / optimized / DLL files
@@ -173,34 +188,4 @@ poetry.toml
 # LSP config files
 pyrightconfig.json
 
-### ROS2 ###
-install/
-log/
-
-# Ignore generated docs
-*.dox
-*.wikidoc
-
-# eclipse stuff
-.project
-.cproject
-
-# qcreator stuff
-CMakeLists.txt.user
-
-srv/_*.py
-*.pcd
-*.pyc
-qtcreator-*
-*.user
-
-*~
-
-# Emacs
-.#*
-
-# Colcon custom files
-COLCON_IGNORE
-AMENT_IGNORE
-
-# End of https://www.toptal.com/developers/gitignore/api/ros2,python
+# End of https://www.toptal.com/developers/gitignore/api/python,linux

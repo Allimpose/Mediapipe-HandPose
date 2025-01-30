@@ -1,1 +1,0 @@
-/home/jun/Mediapipe-HandPose/build/my_package/launch/my_package_launch_file.launch.py
